@@ -117,7 +117,7 @@
     <div class="mode-cards">
       <div class="mode-card pm" id="pick-photo">
         <span class="mc-icon">😈</span>
-        <div class="mc-title">DARTFACE</div>
+        <div class="mc-title">SnapTarget</div>
         <div class="mc-desc">Upload anyone's photo and make them the target. Stress relief, guaranteed.</div>
         <div class="mc-badge">UPLOAD A PHOTO</div>
       </div>
@@ -319,7 +319,7 @@ function addScore(pts){S.score+=pts;updateHUD(S.score,S.timeLeft);}
 function launchPhaser(cfg){
   killGame();
   const W=Math.min(window.innerWidth-30,700),H=Math.round(W*0.72);
-  window.PG=new Phaser.Game({type:Phaser.AUTO,width:W,height:H,backgroundColor:'#0c0c18',parent:'gcont',scene:[S.mode==='classic'?ClassicScene:PhotoScene]});
+  window.PG=new Phaser.Game({type:Phaser.CANVAS,width:W,height:H,backgroundColor:'#0c0c18',parent:'gcont',scene:[S.mode==='classic'?ClassicScene:PhotoScene]});
   window.PG.events.once('ready',()=>{
     const reg=window.PG.registry;
     reg.set('imageURL',S.imageURL);reg.set('cfg',cfg);
