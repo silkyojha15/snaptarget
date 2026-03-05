@@ -398,7 +398,7 @@ class BaseScene extends Phaser.Scene {
       onComplete:()=>this.tweens.add({targets:d,x:'+='+Phaser.Math.Between(-4,4),duration:65,yoyo:true,repeat:3}),
     });
     const pts=this._score(dist,dx,dy);
-    this.registry.get('onScore')(pts);
+    window._GDATA.onScore(pts);
     this._splat.setPosition(tx,ty);
     this._splat.setTint(pts>=50?0xff4444:pts>=25?0x00cc55:pts>0?0xff9900:0x555555);
     this._splat.explode(22);
@@ -421,8 +421,8 @@ class BaseScene extends Phaser.Scene {
     this._t=dur;
     this.time.addEvent({delay:1000,repeat:dur-1,callback:()=>{
       this._t--;
-      this.registry.get('onTick')(this._t);
-      if(this._t<=0){this._on=false;this.time.delayedCall(350,()=>this.registry.get('onEnd')());}
+      window._GDATA.onTick(this._t);
+      if(this._t<=0){this._on=false;this.time.delayedCall(350,()=>window._GDATA.onEnd());}
     }});
   }
   _startMove(cfg){
@@ -444,12 +444,12 @@ class BaseScene extends Phaser.Scene {
 class PhotoScene extends BaseScene {
   constructor(){super({key:'PhotoScene'});}
   preload(){
-    const url=this.registry.get('imageURL');
+    const url=window._GDATA.imageURL;
     if(url){if(this.textures.exists('tgt'))this.textures.remove('tgt');this.textures.addBase64('tgt',url);}
   }
   create(){
-    const W=this.scale.width,H=this.scale.height,cfg=this.registry.get('cfg');
-    const r=Math.min(W,H)*0.31*cfg.scale;
+    const W=this.scale.width,H=this.scale.height,cfg=window._GDATA.cfg;
+    const r=Math.min(W,H)*0.40*cfg.scale;
     this._r=r;this._tc=this.add.container(W/2,H/2);
     this.add.grid(W/2,H/2,W,H,44,44,0x1a1a3a,0,0x22224a,0.32);
     const g=this.add.graphics();
@@ -472,8 +472,8 @@ class PhotoScene extends BaseScene {
 class ClassicScene extends BaseScene {
   constructor(){super({key:'ClassicScene'});}
   create(){
-    const W=this.scale.width,H=this.scale.height,cfg=this.registry.get('cfg');
-    const r=Math.min(W,H)*0.40*cfg.scale;
+    const W=this.scale.width,H=this.scale.height,cfg=window._GDATA.cfg;
+    const r=Math.min(W,H)*0.31*cfg.scale;
     this._r=r;this._tc=this.add.container(W/2,H/2);
     this.add.rectangle(0,0,W,H,0x090603).setOrigin(0,0);
     this.add.grid(W/2,H/2,W,H,60,60,0x110a04,0,0x180f06,.45);
