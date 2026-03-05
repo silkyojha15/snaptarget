@@ -319,14 +319,15 @@ function addScore(pts){S.score+=pts;updateHUD(S.score,S.timeLeft);}
 function launchPhaser(cfg){
   killGame();
   const W=Math.min(window.innerWidth-30,700),H=Math.round(W*0.72);
+  window._GDATA={imageURL:S.imageURL,cfg:cfg,onScore:addScore,onEnd:showResult,onTick:t=>{S.timeLeft=t;updateHUD(S.score,t);}};
   window.PG=new Phaser.Game({type:Phaser.CANVAS,width:W,height:H,backgroundColor:'#0c0c18',parent:'gcont',scene:[S.mode==='classic'?ClassicScene:PhotoScene]});
   window.PG.events.once('ready',()=>{
     const reg=window.PG.registry;
-    reg.set('imageURL',S.imageURL);reg.set('cfg',cfg);
-    reg.set('onScore',addScore);reg.set('onEnd',showResult);
-    reg.set('onTick',t=>{S.timeLeft=t;updateHUD(S.score,t);});
+    reg.set('imageURL',window._GDATA.imageURL);reg.set('cfg',window._GDATA.cfg);
+    reg.set('onScore',window._GDATA.onScore);reg.set('onEnd',window._GDATA.onEnd);
+    reg.set('onTick',window._GDATA.onTick);
   });
-}
+  }
 function killGame(){if(window.PG){window.PG.destroy(true);window.PG=null;}}
 
 /* ── DRAW CLASSIC BOARD (canvas 2d utility) ── */
