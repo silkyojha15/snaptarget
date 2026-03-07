@@ -381,11 +381,18 @@ class BaseScene extends Phaser.Scene {
     if(cfg.pattern!=='none')this._startMove(cfg);
   }
   _buildParticles(){
-    const g=this.make.graphics({add:false});
-    g.fillStyle(0xffffff,1);g.fillCircle(5,5,5);g.generateTexture('sp_tex',10,10);g.destroy();
-    this._splat=this.add.particles(0,0,'sp_tex',{
+    // Canvas-compatible particle system using multiple colored textures
+    const colors={red:0xff4444,orange:0xff9900,gold:0xffd700,white:0xffffff};
+    this._splatTextures={};
+    Object.entries(colors).forEach(([name,col])=>{
+      const g=this.make.graphics({add:false});
+      g.fillStyle(col,1);g.fillCircle(6,6,6);g.generateTexture('sp_'+name,12,12);g.destroy();
+      this._splatTextures[name]='sp_'+name;
+    });
+    this._splatKey='sp_red';
+    this._splat=this.add.particles(0,0,'sp_red',{
       speed:{min:80,max:250},scale:{start:1.2,end:0},lifespan:500,quantity:22,emitting:false,
-      alpha:{start:1,end:0},gravityY:230,tint:[0xff4444,0xff9900,0xffd700,0xffffff],
+      alpha:{start:1,end:0},gravityY:230,
     });
   }
   _throw(ptr){
@@ -400,7 +407,11 @@ class BaseScene extends Phaser.Scene {
     const pts=this._score(dist,dx,dy);
     window._GDATA.onScore(pts);
     this._splat.setPosition(tx,ty);
-    this._splat.setTint(pts>=50?0xff4444:pts>=25?0x00cc55:pts>0?0xff9900:0x555555);
+    // Canvas-safe: swap texture instead of setTint
+    const texKey=pts>=50?'sp_red':pts>=25?'sp_gold':pts>0?'sp_orange':'sp_white';
+    if(this._splat.texture && this._splat.texture.key!==texKey){
+      this._splat.setTexture(texKey);
+    }
     this._splat.explode(22);
     if(pts>0)this._popup(tx,ty,pts);
     this.time.delayedCall(3200,()=>this.tweens.add({targets:d,alpha:0,duration:380,onComplete:()=>d.destroy()}));
@@ -449,20 +460,42 @@ class PhotoScene extends BaseScene {
   }
   create(){
     const W=this.scale.width,H=this.scale.height,cfg=window._GDATA.cfg;
-    const r=Math.min(W,H)*0.31*cfg.scale;
+    const r=Math.min(W,H)*0.38*cfg.scale;
     this._r=r;this._tc=this.add.container(W/2,H/2);
     this.add.grid(W/2,H/2,W,H,44,44,0x1a1a3a,0,0x22224a,0.32);
+    // 3D-feeling target rings with depth shadows
+    const shadow=this.add.graphics();
+    shadow.fillStyle(0x000000,0.4);shadow.fillCircle(r*0.06,r*0.06,r*1.05);
+    this._tc.add(shadow);
     const g=this.add.graphics();
-    [[1.00,0x1a1a3a,.45],[0.72,0xffd700,.45],[0.48,0xff9900,.50],[0.19,0xff4444,.58]].forEach(([f,c,a])=>{g.fillStyle(c,a);g.fillCircle(0,0,r*f);});
-    g.lineStyle(3,0xe94560,.85);g.strokeCircle(0,0,r);
+    [[1.05,0x111122,.9],[1.00,0x1a1a3a,1],[0.72,0xffd700,.6],[0.48,0xff9900,.7],[0.19,0xff4444,.85]].forEach(([f,c,a])=>{g.fillStyle(c,a);g.fillCircle(0,0,r*f);});
+    // highlight arc for 3D dome effect
+    g.fillStyle(0xffffff,0.07);g.fillEllipse(-r*0.15,-r*0.3,r*0.9,r*0.45);
+    g.lineStyle(4,0xe94560,1);g.strokeCircle(0,0,r);
+    g.lineStyle(2,0xffd700,0.5);g.strokeCircle(0,0,r*0.72);
+    g.lineStyle(2,0xff9900,0.5);g.strokeCircle(0,0,r*0.48);
     this._tc.add(g);
     if(this.textures.exists('tgt')){
       const img=this.add.image(0,0,'tgt');
-      img.setScale((r*2)/Math.min(img.width,img.height)).setAlpha(0.87);
-      const msk=this.make.graphics({add:false});msk.fillStyle(0xffffff);msk.fillCircle(W/2,H/2,r);
+      const scale=(r*2)/Math.max(img.width,img.height)*1.05;
+      img.setScale(scale).setAlpha(0.92);
+      const msk=this.make.graphics({add:false});msk.fillStyle(0xffffff);msk.fillCircle(W/2,H/2,r*0.98);
       img.setMask(msk.createGeometryMask());this._tc.add(img);
+      // ring overlay on top of photo
+      const ov=this.add.graphics();
+      ov.lineStyle(3,0xff4444,0.9);ov.strokeCircle(0,0,r*0.19);
+      ov.lineStyle(2,0xff9900,0.7);ov.strokeCircle(0,0,r*0.48);
+      ov.lineStyle(2,0xffd700,0.5);ov.strokeCircle(0,0,r*0.72);
+      ov.lineStyle(3,0xe94560,0.8);ov.strokeCircle(0,0,r);
+      ov.lineStyle(1,0xffffff,0.2);ov.lineBetween(-r,0,r,0);ov.lineBetween(0,-r,0,r);
+      // score labels
+      const labels=[[r*0.105,'50'],[r*0.335,'30'],[r*0.595,'10']];
+      labels.forEach(([pos,txt])=>{
+        this.add.text(pos,0,txt,{fontFamily:'Bangers',fontSize:'14px',color:'#ffffff',stroke:'#000',strokeThickness:3}).setOrigin(0.5);
+      });
+      this._tc.add(ov);
     }
-    const cr=this.add.graphics();cr.lineStyle(1,0xffffff,0.22);cr.lineBetween(-r,0,r,0);cr.lineBetween(0,-r,0,r);this._tc.add(cr);
+    const cr=this.add.graphics();cr.lineStyle(1,0xffffff,0.15);cr.lineBetween(-r,0,r,0);cr.lineBetween(0,-r,0,r);this._tc.add(cr);
     this._setup(cfg);
   }
   _score(dist){const r=this._r;if(dist<=r*0.19)return 50;if(dist<=r*0.48)return 30;if(dist<=r*1.00)return 10;return 0;}
@@ -473,7 +506,7 @@ class ClassicScene extends BaseScene {
   constructor(){super({key:'ClassicScene'});}
   create(){
     const W=this.scale.width,H=this.scale.height,cfg=window._GDATA.cfg;
-    const r=Math.min(W,H)*0.31*cfg.scale;
+    const r=Math.min(W,H)*0.40*cfg.scale;
     this._r=r;this._tc=this.add.container(W/2,H/2);
     this.add.rectangle(0,0,W,H,0x090603).setOrigin(0,0);
     this.add.grid(W/2,H/2,W,H,60,60,0x110a04,0,0x180f06,.45);
